@@ -1,5 +1,5 @@
 // SPDX-License-Identifier: MIT
-pragma solidity 0.8.0;
+pragma solidity ^0.8.0;
 
 import "openzeppelin-contracts/contracts/token/ERC20/ERC20.sol";
 
@@ -26,7 +26,7 @@ contract DaoToken is ERC20("Dao Token", "DaoToken") {
         _moveDelegates(_delegates[_from], address(0), _amount);
     }
 
-
+    //代理人映射（被代理人 => 代理者delegatee）
     mapping(address => address) internal _delegates;
 
     struct Checkpoint {
@@ -53,7 +53,9 @@ contract DaoToken is ERC20("Dao Token", "DaoToken") {
         }
     }
 
+    // 用戶所有的投票快照紀錄，從0開始
     mapping(address => mapping(uint32 => Checkpoint)) public checkpoints;
+    // 快照id, 每次有新的快照，則id+1，id 從1開始
     mapping(address => uint32) public numCheckpoints;
 
     function delegates(address _addr) external view returns (address) {
@@ -77,7 +79,7 @@ contract DaoToken is ERC20("Dao Token", "DaoToken") {
         _moveDelegates(currentDelegate, delegatee, _addrBalance);
     }
 
-
+    // 記錄投票快照，
     function _writeCheckpoint(address delegatee, uint32 nCheckpoints, uint256 oldVotes, uint256 newVotes) internal {
         uint32 blockNumber = uint32(block.number);
 
