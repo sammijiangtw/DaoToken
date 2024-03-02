@@ -2,6 +2,7 @@
 pragma solidity ^0.8.0;
 
 import "openzeppelin-contracts/contracts/token/ERC20/ERC20.sol";
+import {console} from "forge-std/Script.sol";
 
 contract DaoToken is ERC20("Dao Token", "DaoToken") {
 
@@ -18,6 +19,7 @@ contract DaoToken is ERC20("Dao Token", "DaoToken") {
 
     function mint(address _to, uint256 _amount) public onlyOwner {
         _mint(_to, _amount);
+        //_delegates[_to] 如果原本沒有值，就會是address(0)
         _moveDelegates(address(0), _delegates[_to], _amount);
     }
 
@@ -34,20 +36,29 @@ contract DaoToken is ERC20("Dao Token", "DaoToken") {
         uint256 votes;
     }
 
-
+    //0, hacker, 1000
     function _moveDelegates(address from, address to, uint256 amount) internal {
+        // 第一次mint 而且之前沒有delegatee 就會不進以下function
         if (from != to && amount > 0) {
             if (from != address(0)) {
                 uint32 fromNum = numCheckpoints[from];
                 uint256 fromOld = fromNum > 0 ? checkpoints[from][fromNum - 1].votes : 0;
                 uint256 fromNew = fromOld - amount;
+                // console.log("_moveDelegates address from", from);
+                // console.log("_moveDelegates address from fromNum", fromNum);
+                // console.log("_moveDelegates address from fromOld", fromOld);
+                // console.log("_moveDelegates address from fromNew", fromNew);
                 _writeCheckpoint(from, fromNum, fromOld, fromNew);
             }
 
             if (to != address(0)) {
-                uint32 toNum = numCheckpoints[to];
-                uint256 toOld = toNum > 0 ? checkpoints[to][toNum - 1].votes : 0;
-                uint256 toNew = toOld + amount;
+                uint32 toNum = numCheckpoints[to];//0
+                uint256 toOld = toNum > 0 ? checkpoints[to][toNum - 1].votes : 0;//0
+                uint256 toNew = toOld + amount;//1000
+                // console.log("_moveDelegates address to", to);
+                // console.log("_moveDelegates address to toNum", toNum);
+                // console.log("_moveDelegates address to toOld", toOld);
+                // console.log("_moveDelegates address to toNew", toNew);
                 _writeCheckpoint(to, toNum, toOld, toNew);
             }
         }
@@ -79,15 +90,21 @@ contract DaoToken is ERC20("Dao Token", "DaoToken") {
         _moveDelegates(currentDelegate, delegatee, _addrBalance);
     }
 
-    // 記錄投票快照，
+    // 記錄投票快照，//hacker, 0, 0, 1000
     function _writeCheckpoint(address delegatee, uint32 nCheckpoints, uint256 oldVotes, uint256 newVotes) internal {
         uint32 blockNumber = uint32(block.number);
 
         if (nCheckpoints > 0 && checkpoints[delegatee][nCheckpoints - 1].fromBlock == blockNumber) {
+            
+            // console.log("nCheckpoints>0", delegatee);
             checkpoints[delegatee][nCheckpoints - 1].votes = newVotes;
+            
+
         } else {
+            // console.log("nCheckpoints==0", delegatee);
             checkpoints[delegatee][nCheckpoints] = Checkpoint(blockNumber, newVotes);
             numCheckpoints[delegatee] = nCheckpoints + 1;
+            // console.log("nCheckpoints", numCheckpoints[delegatee]);
         }
     }
 }
